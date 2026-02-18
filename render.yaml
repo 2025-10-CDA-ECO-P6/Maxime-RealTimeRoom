@@ -4,8 +4,10 @@ services:
     plan: free
     runtime: docker
     dockerfilePath: ./web/Dockerfile
+    dockerContext: ./web
   - type: web
     name: api
     plan: free
     runtime: docker
     dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
