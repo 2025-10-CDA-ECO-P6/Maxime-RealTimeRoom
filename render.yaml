@@ -1,9 +1,11 @@
 services:
   - type: web
     name: web
+    plan: free
     runtime: docker
     dockerfilePath: ./web/Dockerfile
   - type: web
     name: api
+    plan: free
     runtime: docker
     dockerfilePath: ./api/Dockerfile
