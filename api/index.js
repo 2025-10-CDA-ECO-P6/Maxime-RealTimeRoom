@@ -11,6 +11,10 @@ app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'index.html'));
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 io.on('connection', (socket) => {
   console.log('a user connected');
 });
