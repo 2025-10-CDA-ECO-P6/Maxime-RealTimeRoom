@@ -6,7 +6,7 @@ COPY . .
 
 RUN npm install -g pnpm && pnpm install
 
-RUN pnpm build
+RUN pnpm run build
 
 RUN addgroup --system --gid 1001 webgroup 
 RUN adduser --system --uid 1001 web
