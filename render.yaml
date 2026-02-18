@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: web
+    runtime: docker
+    dockerfilePath: ./web/Dockerfile
+  - type: web
+    name: api
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
