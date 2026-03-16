@@ -3,6 +3,7 @@ import { socket } from '../socket';
 import { ChatBar } from '../components/ChatBar';
 import { ConnectionManager } from '../components/ConnectionManager';
 import { MessagesBox } from '../components/MessagesBox';
+import { GameArea } from '../components/game/GameArea';
 import './Chat.css';
 
 export interface ChatMessage {
@@ -110,8 +111,11 @@ function Chat({ username }: { username: string }) {
           </div>
         </div>
 
-        {/* Chat area */}
-        <div className="skype-chat">
+        {/* Zone jeu (centre) */}
+        <GameArea />
+
+        {/* Chat sidebar (droite) */}
+        <div className="skype-chat-sidebar">
           <div className="skype-chat-header">
             <div className="skype-avatar small">#</div>
             <div>
@@ -119,11 +123,6 @@ function Chat({ username }: { username: string }) {
               <div className="skype-chat-subtitle">
                 {isConnected ? '● Connected' : '○ Disconnected'}
               </div>
-            </div>
-            <div className="skype-chat-actions">
-              <button title="Voice call">📞</button>
-              <button title="Video call">📹</button>
-              <button title="Add people">➕</button>
             </div>
           </div>
 

@@ -1,7 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { GameStatus } from '../components/game/GameStatus';
-import type { GamePhase } from '../types/game';
 
 describe('GameStatus', () => {
   test('affiche un message d\'attente quand phase est "waiting"', () => {

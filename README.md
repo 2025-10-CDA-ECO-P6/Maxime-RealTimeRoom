@@ -1,16 +1,19 @@
 # RealTimeRoom
 
-Application de chat en temps réel avec une interface inspirée de l'ancien Skype, construite avec React, Node.js et Socket.io.
+Application de chat en temps réel avec un **jeu Tic-Tac-Toe multijoueur**, construite avec React, Node.js et Socket.io. Interface inspirée de l'ancien Skype.
 
 ---
 
 ## Sommaire
 
 - [Aperçu](#aperçu)
+- [Règles du Tic-Tac-Toe](#règles-du-tic-tac-toe)
 - [Architecture](#architecture)
 - [Prérequis](#prérequis)
-- [Variables d'environnement](#variables-denvironnement)
 - [Installation & Développement](#installation--développement)
+- [Exécuter les tests](#exécuter-les-tests)
+- [Démarche TDD](#démarche-tdd)
+- [Variables d'environnement](#variables-denvironnement)
 - [Production](#production)
 - [Déploiement sur Render](#déploiement-sur-render)
 - [Structure du projet](#structure-du-projet)
@@ -21,19 +24,40 @@ Application de chat en temps réel avec une interface inspirée de l'ancien Skyp
 
 ## Aperçu
 
-RealTimeRoom est un chat multi-utilisateurs temps réel. L'utilisateur choisit un pseudo sur un écran de connexion stylisé façon Skype classique (2010), puis accède à un salon de discussion partagé. Tous les messages sont diffusés en broadcast à tous les clients connectés via WebSocket.
+RealTimeRoom est une application temps réel avec deux fonctionnalités principales :
+
+- **Tic-Tac-Toe multijoueur** — jeu au premier plan, matchmaking automatique
+- **Chat global** — sidebar droite, accessible pendant la partie
+
+L'utilisateur choisit un pseudo, puis arrive directement sur l'interface de jeu avec le chat sur le côté.
 
 **Fonctionnalités :**
 
+- Tic-Tac-Toe multijoueur en temps réel (matchmaking auto)
+- Chat multi-utilisateurs en sidebar
 - Connexion par pseudo (2–20 caractères)
-- Chat temps réel multi-utilisateurs
-- Distinction visuelle messages envoyés / reçus
-- Sélecteur d'emojis rapide (6 emojis)
-- Indicateur de connexion en direct (online / offline)
 - Design rétro Skype avec thème bleu Windows Aero
-- Défilement automatique vers le dernier message
 
-> Les messages ne sont pas persistés — ils sont perdus au redémarrage du serveur.
+> Les messages et parties ne sont pas persistés — perdus au redémarrage du serveur.
+
+---
+
+## Règles du Tic-Tac-Toe
+
+Le Tic-Tac-Toe (morpion) se joue sur une grille 3×3 avec deux joueurs (X et O).
+
+**Objectif :** aligner 3 symboles identiques en ligne, colonne ou diagonale.
+
+**Déroulement :**
+1. Les deux joueurs rejoignent une partie via le bouton **Join Game**
+2. Le premier joueur arrivé joue les X, le second les O
+3. Les joueurs jouent chacun leur tour en cliquant sur une case vide
+4. La partie se termine quand un joueur aligne 3 symboles ou que le plateau est plein (match nul)
+5. Un bouton **Play Again** permet de rejouer dans la même salle
+
+**Combinaisons gagnantes :** 3 lignes horizontales, 3 colonnes verticales, 2 diagonales (8 au total).
+
+**Cas limite :** si le plateau est plein sans vainqueur, la partie est déclarée nulle (Draw).
 
 ---
 
@@ -155,6 +179,66 @@ Cette commande lance en parallèle :
 ```bash
 pnpm --filter web lint
 ```
+
+---
+
+## Exécuter les tests
+
+Les tests sont écrits avec **Vitest** et couvrent la logique de jeu et les composants React.
+
+### Tous les tests (racine du monorepo)
+
+```bash
+pnpm test
+```
+
+### Tests API uniquement
+
+```bash
+cd api && pnpm test
+```
+
+### Tests frontend uniquement
+
+```bash
+cd web && pnpm test
+```
+
+### Résultat attendu
+
+```
+api/__tests__/tictactoe.test.js  ✓ 18 tests
+api/__tests__/gameSocket.test.js ✓  6 tests
+web/src/__tests__/gameLogic.test.ts   ✓ 8 tests
+web/src/__tests__/GameBoard.test.tsx  ✓ 5 tests
+web/src/__tests__/GameStatus.test.tsx ✓ 6 tests
+```
+
+---
+
+## Démarche TDD
+
+Ce projet a été développé en suivant une approche **Test-Driven Development** stricte :
+
+### Cycle RED → GREEN
+
+**Phase RED (commit 1)**
+- Mise en place de l'infrastructure de tests (Vitest, @testing-library/react, jsdom)
+- Écriture de tous les tests avant toute implémentation
+- Les tests échouent intentionnellement (modules manquants)
+
+**Phase GREEN (commit 2)**
+- Implémentation des modules pour faire passer chaque test
+- Logique pure (`tictactoe.js`) testée indépendamment du socket
+- Handlers socket (`gameManager.js`) testés avec des mocks sans serveur réel
+- Composants React testés avec @testing-library/react
+
+### Découpage testable
+
+- `api/src/game/tictactoe.js` — fonctions pures sans effets de bord → tests unitaires directs
+- `api/src/game/gameManager.js` — factory pattern → chaque test reçoit une instance fraîche
+- `web/src/utils/gameLogic.ts` — helpers purs → tests sans mock socket
+- Composants React — testés avec render + userEvent
 
 ---
 
@@ -297,11 +381,21 @@ Maxime-RealTimeRoom/
 
 ## Événements Socket.io
 
+### Chat
+
 | Événement      | Émis par  | Reçu par           | Payload                          |
 |----------------|-----------|--------------------|----------------------------------|
 | `chat message` | Client    | Serveur            | `{ user: string, text: string }` |
 | `chat message` | Serveur   | Tous les clients   | `{ user: string, text: string }` |
-| `connect`      | Socket.io | Client             | —                                |
-| `disconnect`   | Socket.io | Client             | —                                |
 
-Le serveur effectue un **broadcast complet** (`io.emit`) — l'émetteur reçoit aussi son propre message en retour.
+### Jeu
+
+| Événement      | Émis par  | Reçu par              | Payload                                                 |
+|----------------|-----------|-----------------------|---------------------------------------------------------|
+| `game:join`    | Client    | Serveur               | —                                                       |
+| `game:waiting` | Serveur   | Client (1er joueur)   | `{ message: string }`                                   |
+| `game:start`   | Serveur   | Les 2 joueurs         | `{ board, currentPlayer, players, gameId }`             |
+| `game:move`    | Client    | Serveur               | `{ gameId, position: number }`                          |
+| `game:update`  | Serveur   | Les 2 joueurs         | `{ board, currentPlayer, winner, isDraw }`              |
+| `game:over`    | Serveur   | Les 2 joueurs         | `{ winner, isDraw, reason? }`                           |
+| `game:reset`   | Client    | Serveur               | `{ gameId }`                                            |
