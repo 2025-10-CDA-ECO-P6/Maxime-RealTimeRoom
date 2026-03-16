@@ -1,39 +1,51 @@
 const { randomUUID } = require('node:crypto');
-const { createBoard, makeMove, checkWinner, isDraw } = require('./tictactoe.js');
+const {
+  createBoard,
+  makeMove,
+  checkWinner,
+  isDraw,
+} = require('./tictactoe.js');
 
 function createGameManager() {
-  let waitingSocket = null;
-  const games = new Map();       // gameId → GameState
-  const socketGameMap = new Map(); // socketId → gameId
+  const waitingQueue = [];
+  const games = new Map();
+  const socketGameMap = new Map();
 
   function joinGame(io, socket) {
-    if (!waitingSocket) {
-      waitingSocket = socket;
-      socket.emit('game:waiting', { message: 'En attente d\'un adversaire...' });
-    } else {
-      const gameId = randomUUID();
-      const gameState = {
-        board: createBoard(),
-        currentPlayer: 'X',
-        players: { X: waitingSocket.id, O: socket.id },
-        gameId,
-      };
+    if (waitingQueue.some((s) => s.id === socket.id)) return;
+    if (socketGameMap.has(socket.id)) return;
 
-      games.set(gameId, gameState);
-      socketGameMap.set(waitingSocket.id, gameId);
-      socketGameMap.set(socket.id, gameId);
+    waitingQueue.push(socket);
 
-      waitingSocket.join(gameId);
-      socket.join(gameId);
-      waitingSocket = null;
-
-      io.to(gameId).emit('game:start', {
-        board: gameState.board,
-        currentPlayer: gameState.currentPlayer,
-        players: gameState.players,
-        gameId,
-      });
+    if (waitingQueue.length < 2) {
+      socket.emit('game:waiting', { message: "En attente d'un adversaire..." });
+      return;
     }
+
+    const socketX = waitingQueue.shift();
+    const socketO = waitingQueue.shift();
+
+    const gameId = randomUUID();
+    const gameState = {
+      board: createBoard(),
+      currentPlayer: 'X',
+      players: { X: socketX.id, O: socketO.id },
+      gameId,
+    };
+
+    games.set(gameId, gameState);
+    socketGameMap.set(socketX.id, gameId);
+    socketGameMap.set(socketO.id, gameId);
+
+    socketX.join(gameId);
+    socketO.join(gameId);
+
+    io.to(gameId).emit('game:start', {
+      board: gameState.board,
+      currentPlayer: gameState.currentPlayer,
+      players: gameState.players,
+      gameId,
+    });
   }
 
   function handleMove(io, socket, { gameId, position }) {
@@ -41,8 +53,11 @@ function createGameManager() {
     if (!game) return;
 
     const playerMark =
-      game.players.X === socket.id ? 'X' :
-      game.players.O === socket.id ? 'O' : null;
+      game.players.X === socket.id
+        ? 'X'
+        : game.players.O === socket.id
+          ? 'O'
+          : null;
 
     if (!playerMark || playerMark !== game.currentPlayer) return;
 
@@ -84,15 +99,14 @@ function createGameManager() {
     });
   }
 
-  function handleDisconnect(io, socket) {
-    if (waitingSocket && waitingSocket.id === socket.id) {
-      waitingSocket = null;
+  function handleLeaveGame(io, socket, options = {}) {
+    const queueIndex = waitingQueue.findIndex((s) => s.id === socket.id);
+    if (queueIndex !== -1) {
+      waitingQueue.splice(queueIndex, 1);
       return;
     }
 
-    const gameId = socketGameMap.get(socket.id);
-    if (!gameId) return;
-
+    const gameId = (options && options.gameId) || socketGameMap.get(socket.id);
     const game = games.get(gameId);
     if (!game) return;
 
@@ -103,15 +117,27 @@ function createGameManager() {
     games.delete(gameId);
   }
 
+  function handleDisconnect(io, socket) {
+    handleLeaveGame(io, socket);
+  }
+
   function getWaitingPlayer() {
-    return waitingSocket ? waitingSocket.id : null;
+    return waitingQueue.length > 0 ? waitingQueue[0].id : null;
   }
 
   function getGame(gameId) {
     return games.get(gameId);
   }
 
-  return { joinGame, handleMove, handleReset, handleDisconnect, getWaitingPlayer, getGame };
+  return {
+    joinGame,
+    handleMove,
+    handleReset,
+    handleLeaveGame,
+    handleDisconnect,
+    getWaitingPlayer,
+    getGame,
+  };
 }
 
 module.exports = { createGameManager };

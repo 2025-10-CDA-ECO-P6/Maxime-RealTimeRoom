@@ -6,7 +6,7 @@ import { GameStatus } from './GameStatus';
 import './GameBoard.css';
 
 export function GameArea() {
-  const { gameState, mySocketId, joinGame, makeMove, resetGame } = useGame();
+  const { gameState, mySocketId, joinGame, makeMove, resetGame, leaveGame } = useGame();
 
   const phase = getGamePhase(gameState, mySocketId);
 
@@ -29,7 +29,7 @@ export function GameArea() {
           winningCells={winningCells}
         />
       )}
-      <GameControls phase={phase} onJoin={joinGame} onReset={resetGame} />
+      <GameControls phase={phase} onJoin={joinGame} onReset={resetGame} onLeave={leaveGame} />
     </div>
   );
 }

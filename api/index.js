@@ -29,9 +29,10 @@ io.on('connection', (socket) => {
     io.emit('chat message', msg);
   });
 
-  socket.on('game:join', () => gameManager.joinGame(io, socket));
-  socket.on('game:move', (data) => gameManager.handleMove(io, socket, data));
+  socket.on('game:join',  ()     => gameManager.joinGame(io, socket));
+  socket.on('game:move',  (data) => gameManager.handleMove(io, socket, data));
   socket.on('game:reset', (data) => gameManager.handleReset(io, socket, data));
+  socket.on('game:leave', (data) => gameManager.handleLeaveGame(io, socket, data));
 
   socket.on('disconnect', () => {
     console.log('user disconnected');

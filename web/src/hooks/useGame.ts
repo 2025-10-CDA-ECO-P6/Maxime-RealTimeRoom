@@ -56,6 +56,10 @@ export function useGame() {
     socket.on(
       'game:over',
       (data: { winner: Player | null; isDraw?: boolean; reason?: string }) => {
+        if (data.reason === 'opponent-left') {
+          setGameState(null);
+          return;
+        }
         setGameState((prev) => {
           if (!prev) return null;
           return { ...prev, phase: 'over', winner: data.winner };
@@ -86,5 +90,13 @@ export function useGame() {
     socket.emit('game:reset', { gameId: gameState.gameId });
   }
 
-  return { gameState, mySocketId, joinGame, makeMove, resetGame };
+  function leaveGame() {
+    socket.emit(
+      'game:leave',
+      gameState?.gameId ? { gameId: gameState.gameId } : {},
+    );
+    setGameState(null);
+  }
+
+  return { gameState, mySocketId, joinGame, makeMove, resetGame, leaveGame };
 }
