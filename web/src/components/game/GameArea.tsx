@@ -5,7 +5,11 @@ import { GameControls } from './GameControls';
 import { GameStatus } from './GameStatus';
 import './GameBoard.css';
 
-export function GameArea() {
+interface GameAreaProps {
+  onLeave?: () => void;
+}
+
+export function GameArea({ onLeave }: GameAreaProps) {
   const { gameState, mySocketId, joinGame, makeMove, resetGame, leaveGame } = useGame();
 
   const phase = getGamePhase(gameState, mySocketId);
@@ -16,6 +20,11 @@ export function GameArea() {
       : [];
 
   const boardDisabled = phase !== 'playing-your-turn';
+
+  function handleLeave() {
+    leaveGame();
+    onLeave?.();
+  }
 
   return (
     <div className="game-area">
@@ -29,7 +38,7 @@ export function GameArea() {
           winningCells={winningCells}
         />
       )}
-      <GameControls phase={phase} onJoin={joinGame} onReset={resetGame} onLeave={leaveGame} />
+      <GameControls phase={phase} onJoin={joinGame} onReset={resetGame} onLeave={handleLeave} />
     </div>
   );
 }

@@ -77,7 +77,7 @@ export function useGame() {
   }, []);
 
   function joinGame() {
-    socket.emit('game:join');
+    socket.emit('game:join', { gameType: 'tictactoe' });
   }
 
   function makeMove(position: number) {
@@ -93,7 +93,9 @@ export function useGame() {
   function leaveGame() {
     socket.emit(
       'game:leave',
-      gameState?.gameId ? { gameId: gameState.gameId } : {},
+      gameState?.gameId
+        ? { gameType: 'tictactoe', gameId: gameState.gameId }
+        : { gameType: 'tictactoe' },
     );
     setGameState(null);
   }
