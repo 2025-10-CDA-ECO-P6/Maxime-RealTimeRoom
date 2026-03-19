@@ -4,6 +4,7 @@ import { ChatBar } from '../components/ChatBar';
 import { ConnectionManager } from '../components/ConnectionManager';
 import { MessagesBox } from '../components/MessagesBox';
 import { GameArea } from '../components/game/GameArea';
+import { BlackjackArea } from '../components/blackjack/BlackjackArea';
 import { GameLobby } from '../components/GameLobby';
 import './Chat.css';
 
@@ -123,15 +124,7 @@ function Chat({ username }: { username: string }) {
           <GameArea onLeave={() => setActiveGame(null)} />
         )}
         {activeGame === 'blackjack' && (
-          <div className="game-area">
-            <p style={{ color: '#666', fontStyle: 'italic' }}>Blackjack — bientôt disponible</p>
-            <button
-              className="game-btn game-btn--leave"
-              onClick={() => setActiveGame(null)}
-            >
-              ← Retour au lobby
-            </button>
-          </div>
+          <BlackjackArea onLeave={() => setActiveGame(null)} />
         )}
 
         {/* Chat sidebar (droite) */}

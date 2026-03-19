@@ -7,6 +7,19 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { createBlackjackManager } from '../src/game/blackjackManager.js';
 
+/**
+ * Deck déterministe pour les tests : commence avec des petites cartes,
+ * sans As aux positions 0-7 → impossible d'avoir un Blackjack naturel dès la donne.
+ * Distribution : joueur1→(2♥,4♥), dealer→(3♥,5♥)
+ */
+function safeDeck() {
+  const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+  const ranks = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+  const deck = [];
+  for (const suit of suits) for (const rank of ranks) deck.push({ suit, rank });
+  return deck; // ordonné : commence par 2♥, pas d'As avant la 13ème carte
+}
+
 function createMockSocket(id) {
   return { id, emit: vi.fn(), join: vi.fn(), leave: vi.fn() };
 }
@@ -66,7 +79,7 @@ describe('game:start-round', () => {
     io._roomEmit.mockClear();
     io.to.mockClear();
 
-    manager.startRound(io, socket1, { gameId });
+    manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
 
     expect(io._roomEmit).toHaveBeenCalledWith(
       'game:start',
@@ -95,7 +108,7 @@ describe('game:start-round', () => {
     manager.joinGame(io, socket1);
     const gameId = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting')[1].gameId;
 
-    manager.startRound(io, socket1, { gameId });
+    manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
 
     const startPayload = io._roomEmit.mock.calls.find(([ev]) => ev === 'game:start')[1];
     const player = startPayload.players[0];
@@ -114,7 +127,7 @@ describe('game:action — hit', () => {
 
     manager.joinGame(io, socket1);
     const gameId = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting')[1].gameId;
-    manager.startRound(io, socket1, { gameId });
+    manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
 
     io._roomEmit.mockClear();
     io.to.mockClear();
@@ -137,7 +150,7 @@ describe('game:action — stand', () => {
 
     manager.joinGame(io, socket1);
     const gameId = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting')[1].gameId;
-    manager.startRound(io, socket1, { gameId });
+    manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
 
     io._roomEmit.mockClear();
     io.to.mockClear();
@@ -156,7 +169,7 @@ describe('game:action — stand', () => {
 
     manager.joinGame(io, socket1);
     const gameId = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting')[1].gameId;
-    manager.startRound(io, socket1, { gameId });
+    manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
     manager.handleAction(io, socket1, { gameId, action: 'stand' });
 
     const overCall = io._roomEmit.mock.calls.find(([ev]) => ev === 'game:over');
@@ -179,7 +192,7 @@ describe('game:action — hors tour', () => {
 
     manager.joinGame(io, socket1);
     const gameId = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting')[1].gameId;
-    manager.startRound(io, socket1, { gameId });
+    manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
 
     io._roomEmit.mockClear();
     io.to.mockClear();
