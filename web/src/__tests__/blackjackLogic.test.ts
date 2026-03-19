@@ -58,8 +58,8 @@ describe('getBlackjackPhase', () => {
       phase: 'playing',
       currentPlayerIndex: 0,
       players: [
-        { socketId: 'socket-1', hands: [], currentHandIndex: 0 },
-        { socketId: 'socket-2', hands: [], currentHandIndex: 0 },
+        { socketId: 'socket-1', hands: [], currentHandIndex: 0, result: null },
+        { socketId: 'socket-2', hands: [], currentHandIndex: 0, result: null },
       ],
     };
     expect(getBlackjackPhase(state as BJGameState, 'socket-1')).toBe('my-turn');
@@ -70,8 +70,8 @@ describe('getBlackjackPhase', () => {
       phase: 'playing',
       currentPlayerIndex: 1,
       players: [
-        { socketId: 'socket-1', hands: [], currentHandIndex: 0 },
-        { socketId: 'socket-2', hands: [], currentHandIndex: 0 },
+        { socketId: 'socket-1', hands: [], currentHandIndex: 0, result: null },
+        { socketId: 'socket-2', hands: [], currentHandIndex: 0, result: null },
       ],
     };
     expect(getBlackjackPhase(state as BJGameState, 'socket-1')).toBe('waiting-turn');
@@ -93,7 +93,7 @@ describe('isMyTurn', () => {
     const state: Partial<BJGameState> = {
       phase: 'playing',
       currentPlayerIndex: 0,
-      players: [{ socketId: 'socket-1', hands: [], currentHandIndex: 0 }],
+      players: [{ socketId: 'socket-1', hands: [], currentHandIndex: 0, result: null }],
     };
     expect(isMyTurn(state as BJGameState, 'socket-1')).toBe(true);
   });
@@ -103,8 +103,8 @@ describe('isMyTurn', () => {
       phase: 'playing',
       currentPlayerIndex: 1,
       players: [
-        { socketId: 'socket-1', hands: [], currentHandIndex: 0 },
-        { socketId: 'socket-2', hands: [], currentHandIndex: 0 },
+        { socketId: 'socket-1', hands: [], currentHandIndex: 0, result: null },
+        { socketId: 'socket-2', hands: [], currentHandIndex: 0, result: null },
       ],
     };
     expect(isMyTurn(state as BJGameState, 'socket-1')).toBe(false);

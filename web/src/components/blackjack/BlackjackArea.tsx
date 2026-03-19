@@ -1,5 +1,5 @@
 import { useBlackjack } from '../../hooks/useBlackjack';
-import { getBlackjackPhase, isMyTurn, getMyPlayer, calcScore } from '../../utils/blackjackLogic';
+import { getBlackjackPhase, getMyPlayer, calcScore } from '../../utils/blackjackLogic';
 import { BlackjackCard } from './BlackjackCard';
 import { BlackjackHand } from './BlackjackHand';
 import { BlackjackControls } from './BlackjackControls';
