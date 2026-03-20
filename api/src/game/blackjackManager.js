@@ -29,14 +29,14 @@ const {
 
 const MAX_PLAYERS = 4;
 
-function createBlackjackManager() {
+function createBlackjackManager(walletManager = null) {
   const rooms = new Map();          // gameId → BJRoom
   const socketRoomMap = new Map();  // socketId → gameId
 
   // ── Factories ────────────────────────────────────────────────────────────────
 
-  function _createHand(cards = []) {
-    return { cards, doubled: false, status: 'playing' };
+  function _createHand(cards = [], bet = 0) {
+    return { cards, doubled: false, status: 'playing', bet };
   }
 
   function _createPlayer(socketId) {
@@ -138,6 +138,19 @@ function createBlackjackManager() {
       });
     }
 
+    // Appliquer les gains wallet (la mise a déjà été débitée au startRound)
+    if (walletManager) {
+      for (const player of room.players) {
+        player.result.forEach((result, i) => {
+          walletManager.applyBlackjackResult(player.socketId, result, player.hands[i].bet);
+        });
+        const balance = walletManager.getBalance(player.socketId);
+        if (balance !== null) {
+          io.to(player.socketId).emit('wallet:update', { balance });
+        }
+      }
+    }
+
     room.phase = 'over';
     io.to(room.gameId).emit('game:over', {
       players: room.players,
@@ -213,10 +226,24 @@ function createBlackjackManager() {
    * @param {string}   opts.gameId
    * @param {object[]} [opts._testDeck] - deck pré-construit (tests uniquement)
    */
-  function startRound(io, socket, { gameId, _testDeck } = {}) {
+  function startRound(io, socket, { gameId, bet = 10, _testDeck } = {}) {
     const room = rooms.get(gameId);
     if (!room || room.phase !== 'waiting') return;
     if (!room.players.find((p) => p.socketId === socket.id)) return;
+
+    // Valider et débiter la mise pour tous les joueurs
+    const betAmount = Math.max(5, Math.floor(bet));
+    if (walletManager) {
+      for (const player of room.players) {
+        if (!walletManager.canBet(player.socketId, betAmount)) {
+          socket.emit('wallet:bet-refused', { reason: 'Solde insuffisant' });
+          return;
+        }
+      }
+      for (const player of room.players) {
+        walletManager.debit(player.socketId, betAmount);
+      }
+    }
 
     // Deck frais mélangé (ou deck de test injecté)
     room.deck = _testDeck ?? shuffle(createDeck());
@@ -225,7 +252,7 @@ function createBlackjackManager() {
 
     // Distribuer 2 cartes à chaque joueur
     for (const player of room.players) {
-      player.hands = [_createHand()];
+      player.hands = [_createHand([], betAmount)];
       player.currentHandIndex = 0;
       player.result = null;
 
@@ -303,9 +330,12 @@ function createBlackjackManager() {
     } else if (action === 'double') {
       // ── Double Down : 1 seule carte, puis stand forcé ─────────────────────
       if (!canDouble(hand.cards)) return;
+      // Débiter la mise supplémentaire (= mise initiale de la main)
+      if (walletManager && !walletManager.debit(player.socketId, hand.bet)) return;
       const { card, deck } = dealCard(room.deck);
       room.deck = deck;
       hand.cards = [...hand.cards, card];
+      hand.bet = hand.bet * 2;
       hand.doubled = true;
       hand.status = isBust(hand.cards) ? 'bust' : 'doubled';
       io.to(gameId).emit('game:update', _serialize(room));
@@ -315,6 +345,8 @@ function createBlackjackManager() {
       // ── Split : séparer la paire en deux mains ────────────────────────────
       // Chaque nouvelle main reçoit 1 carte supplémentaire immédiatement.
       if (!canSplit(hand.cards)) return;
+      // Débiter la mise de la 2ème main créée par le split
+      if (walletManager && !walletManager.debit(player.socketId, hand.bet)) return;
       const [h1Cards, h2Cards] = splitHand(hand.cards);
 
       const { card: c1, deck: d1 } = dealCard(room.deck);
@@ -323,8 +355,8 @@ function createBlackjackManager() {
       room.deck = d2;
 
       player.hands = [
-        _createHand([...h1Cards, c1]),
-        _createHand([...h2Cards, c2]),
+        _createHand([...h1Cards, c1], hand.bet),
+        _createHand([...h2Cards, c2], hand.bet),
       ];
       player.currentHandIndex = 0;
       io.to(gameId).emit('game:update', _serialize(room));

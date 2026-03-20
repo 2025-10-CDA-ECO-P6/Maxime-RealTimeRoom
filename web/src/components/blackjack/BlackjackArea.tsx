@@ -3,14 +3,16 @@ import { getBlackjackPhase, getMyPlayer, calcScore } from '../../utils/blackjack
 import { BlackjackCard } from './BlackjackCard';
 import { BlackjackHand } from './BlackjackHand';
 import { BlackjackControls } from './BlackjackControls';
+import { BlackjackBet } from './BlackjackBet';
 import './BlackjackTable.css';
 import '../../components/game/GameBoard.css'; // réutiliser les boutons game-btn
 
 interface BlackjackAreaProps {
   onLeave?: () => void;
+  balance?: number | null;
 }
 
-export function BlackjackArea({ onLeave }: BlackjackAreaProps) {
+export function BlackjackArea({ onLeave, balance }: BlackjackAreaProps) {
   const {
     gameState,
     mySocketId,
@@ -110,19 +112,26 @@ export function BlackjackArea({ onLeave }: BlackjackAreaProps) {
         </div>
       )}
 
-      {/* Contrôles */}
-      <BlackjackControls
-        phase={phase}
-        canDouble={canDbl}
-        canSplit={canSpl}
-        onJoin={joinGame}
-        onStart={startRound}
-        onHit={hit}
-        onStand={stand}
-        onDouble={double}
-        onSplit={split}
-        onLeave={handleLeave}
-      />
+      {/* Mise — affiché en phase waiting à la place des contrôles */}
+      {phase === 'waiting' && (
+        <BlackjackBet balance={balance ?? null} onConfirm={(bet) => startRound(bet)} />
+      )}
+
+      {/* Contrôles — toutes les autres phases */}
+      {phase !== 'waiting' && (
+        <BlackjackControls
+          phase={phase}
+          canDouble={canDbl}
+          canSplit={canSpl}
+          onJoin={joinGame}
+          onStart={() => startRound()}
+          onHit={hit}
+          onStand={stand}
+          onDouble={double}
+          onSplit={split}
+          onLeave={handleLeave}
+        />
+      )}
     </div>
   );
 }

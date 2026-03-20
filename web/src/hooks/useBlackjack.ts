@@ -73,9 +73,9 @@ export function useBlackjack() {
     socket.emit('game:join', { gameType: 'blackjack' });
   }
 
-  function startRound() {
+  function startRound(bet: number = 10) {
     if (!gameState?.gameId) return;
-    socket.emit('game:start-round', { gameId: gameState.gameId });
+    socket.emit('game:start-round', { gameId: gameState.gameId, bet });
   }
 
   function hit() {

@@ -227,3 +227,66 @@
   border: 1px solid #005020;
 }
 .bj-btn--split:hover { background: linear-gradient(180deg, #309050 0%, #207040 100%); }
+
+/* ── Sélecteur de mise ────────────────────────────────────────────────────── */
+.bj-bet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,215,0,0.25);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.bj-bet__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffd700;
+  margin: 0;
+}
+
+.bj-bet__options {
+  display: flex;
+  gap: 10px;
+}
+
+.bj-bet__chip {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 3px solid #b8860b;
+  background: radial-gradient(circle at 35% 35%, #ffd700, #b8860b);
+  color: #1a1a1a;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+}
+
+.bj-bet__chip:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0,0,0,0.5);
+}
+
+.bj-bet__chip--active {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px #ffd700, 0 4px 8px rgba(0,0,0,0.5);
+  transform: scale(1.1);
+}
+
+.bj-bet__chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.bj-bet__mise-label {
+  font-size: 13px;
+  color: #ccc;
+  margin: 0;
+}

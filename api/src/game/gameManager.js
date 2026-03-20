@@ -6,7 +6,7 @@ const {
   isDraw,
 } = require('./tictactoe.js');
 
-function createGameManager() {
+function createGameManager(walletManager = null) {
   const waitingQueue = [];
   const games = new Map();
   const socketGameMap = new Map();
@@ -81,6 +81,22 @@ function createGameManager() {
 
     if (winner || draw) {
       io.to(gameId).emit('game:over', { winner, isDraw: draw });
+
+      // Créditer les pièces
+      if (walletManager) {
+        if (draw) {
+          // Nul : +3 pour les deux
+          walletManager.credit(game.players.X, 3);
+          walletManager.credit(game.players.O, 3);
+          io.to(game.players.X).emit('wallet:update', { balance: walletManager.getBalance(game.players.X) });
+          io.to(game.players.O).emit('wallet:update', { balance: walletManager.getBalance(game.players.O) });
+        } else if (winner) {
+          // Victoire : +10 pour le gagnant
+          const winnerSocketId = game.players[winner];
+          walletManager.credit(winnerSocketId, 10);
+          io.to(winnerSocketId).emit('wallet:update', { balance: walletManager.getBalance(winnerSocketId) });
+        }
+      }
     }
   }
 

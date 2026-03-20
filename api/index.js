@@ -4,6 +4,7 @@ const { join } = require('node:path');
 const { Server } = require('socket.io');
 const { createGameManager } = require('./src/game/gameManager.js');
 const { createBlackjackManager } = require('./src/game/blackjackManager.js');
+const { createWalletManager } = require('./src/game/walletManager.js');
 
 const app = express();
 const server = createServer(app);
@@ -21,11 +22,22 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-const ticTacToeManager = createGameManager();
-const blackjackManager = createBlackjackManager();
+const walletManager = createWalletManager();
+const ticTacToeManager = createGameManager(walletManager);
+const blackjackManager = createBlackjackManager(walletManager);
 
 io.on('connection', (socket) => {
   console.log('a user connected');
+
+  // Initialiser le wallet et envoyer le solde au client
+  walletManager.init(socket.id);
+  socket.emit('wallet:update', { balance: walletManager.getBalance(socket.id) });
+
+  // Permet au client de re-demander son solde à tout moment
+  socket.on('wallet:get', () => {
+    const balance = walletManager.getBalance(socket.id);
+    if (balance !== null) socket.emit('wallet:update', { balance });
+  });
 
   socket.on('chat message', (msg) => {
     io.emit('chat message', msg);
@@ -58,6 +70,7 @@ io.on('connection', (socket) => {
     console.log('user disconnected');
     ticTacToeManager.handleDisconnect(io, socket);
     blackjackManager.handleDisconnect(io, socket);
+    walletManager.remove(socket.id);
   });
 });
 

@@ -6,6 +6,8 @@ import { MessagesBox } from '../components/MessagesBox';
 import { GameArea } from '../components/game/GameArea';
 import { BlackjackArea } from '../components/blackjack/BlackjackArea';
 import { GameLobby } from '../components/GameLobby';
+import { WalletDisplay } from '../components/WalletDisplay';
+import { useWallet } from '../hooks/useWallet';
 import './Chat.css';
 
 type ActiveGame = 'tictactoe' | 'blackjack' | null;
@@ -22,6 +24,7 @@ function Chat({ username }: { username: string }) {
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeGame, setActiveGame] = useState<ActiveGame>(null);
+  const { balance } = useWallet();
 
   useEffect(() => {
     socket.auth = { username };
@@ -90,6 +93,7 @@ function Chat({ username }: { username: string }) {
               <ConnectionManager isConnected={isConnected} />
             </div>
           </div>
+          <WalletDisplay balance={balance} />
 
           <div className="skype-search">
             <input type="text" placeholder="Search contacts..." disabled />
@@ -124,7 +128,7 @@ function Chat({ username }: { username: string }) {
           <GameArea onLeave={() => setActiveGame(null)} />
         )}
         {activeGame === 'blackjack' && (
-          <BlackjackArea onLeave={() => setActiveGame(null)} />
+          <BlackjackArea onLeave={() => setActiveGame(null)} balance={balance} />
         )}
 
         {/* Chat sidebar (droite) */}
@@ -146,7 +150,7 @@ function Chat({ username }: { username: string }) {
 
       <div className="skype-statusbar">
         <span>{isConnected ? '🟢 Online' : '🔴 Offline'}</span>
-        <span>Skype Credit: Free</span>
+        <span>🪙 {balance !== null ? `${balance} pièces` : '—'}</span>
       </div>
     </div>
   );
