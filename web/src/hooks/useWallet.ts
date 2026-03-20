@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { socket } from '../socket';
 
 export function useWallet() {
@@ -8,10 +8,19 @@ export function useWallet() {
   useEffect(() => {
     socket.emit('wallet:get');
 
-    function onUpdate({ balance, delta }: { balance: number; delta?: number }) {
+    function onUpdate({
+      balance,
+      delta,
+      isGameResult,
+    }: {
+      balance: number;
+      delta?: number;
+      isGameResult?: boolean;
+    }) {
       setBalance(balance);
-      // On ne met à jour le delta que si c'est un vrai gain/perte (pas l'init)
-      if (delta !== undefined && delta !== 0) {
+      // On met à jour lastDelta seulement après un résultat de jeu réel
+      // (pas à l'initialisation du wallet)
+      if (isGameResult && delta !== undefined) {
         setLastDelta(delta);
       }
     }
@@ -20,5 +29,8 @@ export function useWallet() {
     return () => { socket.off('wallet:update', onUpdate); };
   }, []);
 
-  return { balance, lastDelta };
+  // Réinitialise le delta affiché (ex: quand on change de jeu)
+  const resetDelta = useCallback(() => setLastDelta(null), []);
+
+  return { balance, lastDelta, resetDelta };
 }

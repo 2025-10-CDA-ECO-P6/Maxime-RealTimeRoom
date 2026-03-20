@@ -24,7 +24,7 @@ function Chat({ username }: { username: string }) {
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeGame, setActiveGame] = useState<ActiveGame>(null);
-  const { balance, lastDelta } = useWallet();
+  const { balance, lastDelta, resetDelta } = useWallet();
 
   useEffect(() => {
     socket.auth = { username };
@@ -122,13 +122,13 @@ function Chat({ username }: { username: string }) {
 
         {/* Zone jeu (centre) */}
         {activeGame === null && (
-          <GameLobby onSelectGame={setActiveGame} />
+          <GameLobby onSelectGame={(game) => { resetDelta(); setActiveGame(game); }} />
         )}
         {activeGame === 'tictactoe' && (
-          <GameArea onLeave={() => setActiveGame(null)} lastDelta={lastDelta} />
+          <GameArea onLeave={() => { resetDelta(); setActiveGame(null); }} lastDelta={lastDelta} />
         )}
         {activeGame === 'blackjack' && (
-          <BlackjackArea onLeave={() => setActiveGame(null)} balance={balance} lastDelta={lastDelta} />
+          <BlackjackArea onLeave={() => { resetDelta(); setActiveGame(null); }} balance={balance} lastDelta={lastDelta} />
         )}
 
         {/* Chat sidebar (droite) */}

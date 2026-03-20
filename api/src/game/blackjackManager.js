@@ -162,7 +162,7 @@ function createBlackjackManager(walletManager = null) {
         const balance = walletManager.getBalance(player.socketId);
         if (balance !== null) {
           const delta = balance - balanceBefore;
-          io.to(player.socketId).emit('wallet:update', { balance, delta });
+          io.to(player.socketId).emit('wallet:update', { balance, delta, isGameResult: true });
         }
       }
     }
