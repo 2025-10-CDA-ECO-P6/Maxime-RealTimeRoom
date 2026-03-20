@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 interface WaitingPlayer {
   socketId: string;
-  ready: boolean;
+  ready?: boolean;
 }
 
 interface Props {
@@ -19,8 +19,8 @@ export function BlackjackBet({ balance, players, mySocketId, onReady }: Props) {
 
   const maxBet = balance ?? 0;
   const me = players.find((p) => p.socketId === mySocketId);
-  const iAmReady = me?.ready ?? false;
-  const readyCount = players.filter((p) => p.ready).length;
+  const iAmReady = me?.ready === true;
+  const readyCount = players.filter((p) => p.ready === true).length;
   const canConfirm = !iAmReady && selected > 0 && selected <= maxBet;
 
   return (
