@@ -1,0 +1,45 @@
+.game-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  margin: 10px auto;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  max-width: 280px;
+  animation: summary-pop 0.3s ease;
+}
+
+@keyframes summary-pop {
+  from { transform: scale(0.85); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.game-summary--win {
+  background: #e6f9ec;
+  border: 1.5px solid #4caf50;
+  color: #1b6e2e;
+}
+
+.game-summary--lose {
+  background: #fdecea;
+  border: 1.5px solid #e53935;
+  color: #b71c1c;
+}
+
+.game-summary--push {
+  background: #fff8e1;
+  border: 1.5px solid #ffa000;
+  color: #6d4c00;
+}
+
+.game-summary-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.game-summary-label {
+  line-height: 1.2;
+}

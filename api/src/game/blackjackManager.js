@@ -155,12 +155,14 @@ function createBlackjackManager(walletManager = null) {
     // Appliquer les gains wallet (la mise a déjà été débitée au startRound)
     if (walletManager) {
       for (const player of room.players) {
+        const balanceBefore = walletManager.getBalance(player.socketId) ?? 0;
         player.result.forEach((result, i) => {
           walletManager.applyBlackjackResult(player.socketId, result, player.hands[i].bet);
         });
         const balance = walletManager.getBalance(player.socketId);
         if (balance !== null) {
-          io.to(player.socketId).emit('wallet:update', { balance });
+          const delta = balance - balanceBefore;
+          io.to(player.socketId).emit('wallet:update', { balance, delta });
         }
       }
     }

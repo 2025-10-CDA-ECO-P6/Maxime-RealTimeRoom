@@ -3,13 +3,15 @@ import { getGamePhase, getWinningCells } from '../../utils/gameLogic';
 import { GameBoard } from './GameBoard';
 import { GameControls } from './GameControls';
 import { GameStatus } from './GameStatus';
+import { GameSummary } from '../GameSummary';
 import './GameBoard.css';
 
 interface GameAreaProps {
   onLeave?: () => void;
+  lastDelta?: number | null;
 }
 
-export function GameArea({ onLeave }: GameAreaProps) {
+export function GameArea({ onLeave, lastDelta }: GameAreaProps) {
   const { gameState, mySocketId, joinGame, makeMove, resetGame, leaveGame } = useGame();
 
   const phase = getGamePhase(gameState, mySocketId);
@@ -20,6 +22,7 @@ export function GameArea({ onLeave }: GameAreaProps) {
       : [];
 
   const boardDisabled = phase !== 'playing-your-turn';
+  const isOver = phase === 'won' || phase === 'lost' || phase === 'draw';
 
   function handleLeave() {
     leaveGame();
@@ -30,6 +33,7 @@ export function GameArea({ onLeave }: GameAreaProps) {
     <div className="game-area">
       <h2 className="game-area-title">Tic-Tac-Toe</h2>
       <GameStatus phase={phase} />
+      {isOver && <GameSummary delta={lastDelta ?? null} />}
       {gameState && gameState.phase !== 'waiting' && (
         <GameBoard
           board={gameState.board}

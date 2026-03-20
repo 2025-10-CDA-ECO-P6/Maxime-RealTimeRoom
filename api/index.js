@@ -31,12 +31,12 @@ io.on('connection', (socket) => {
 
   // Initialiser le wallet et envoyer le solde au client
   walletManager.init(socket.id);
-  socket.emit('wallet:update', { balance: walletManager.getBalance(socket.id) });
+  socket.emit('wallet:update', { balance: walletManager.getBalance(socket.id), delta: 0 });
 
   // Permet au client de re-demander son solde à tout moment
   socket.on('wallet:get', () => {
     const balance = walletManager.getBalance(socket.id);
-    if (balance !== null) socket.emit('wallet:update', { balance });
+    if (balance !== null) socket.emit('wallet:update', { balance, delta: 0 });
   });
 
   socket.on('chat message', (msg) => {

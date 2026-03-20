@@ -24,7 +24,7 @@ function Chat({ username }: { username: string }) {
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeGame, setActiveGame] = useState<ActiveGame>(null);
-  const { balance } = useWallet();
+  const { balance, lastDelta } = useWallet();
 
   useEffect(() => {
     socket.auth = { username };
@@ -125,10 +125,10 @@ function Chat({ username }: { username: string }) {
           <GameLobby onSelectGame={setActiveGame} />
         )}
         {activeGame === 'tictactoe' && (
-          <GameArea onLeave={() => setActiveGame(null)} />
+          <GameArea onLeave={() => setActiveGame(null)} lastDelta={lastDelta} />
         )}
         {activeGame === 'blackjack' && (
-          <BlackjackArea onLeave={() => setActiveGame(null)} balance={balance} />
+          <BlackjackArea onLeave={() => setActiveGame(null)} balance={balance} lastDelta={lastDelta} />
         )}
 
         {/* Chat sidebar (droite) */}

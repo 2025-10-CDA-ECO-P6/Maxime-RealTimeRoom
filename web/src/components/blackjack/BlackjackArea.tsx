@@ -4,15 +4,17 @@ import { BlackjackCard } from './BlackjackCard';
 import { BlackjackHand } from './BlackjackHand';
 import { BlackjackControls } from './BlackjackControls';
 import { BlackjackBet } from './BlackjackBet';
+import { GameSummary } from '../GameSummary';
 import './BlackjackTable.css';
 import '../../components/game/GameBoard.css'; // réutiliser les boutons game-btn
 
 interface BlackjackAreaProps {
   onLeave?: () => void;
   balance?: number | null;
+  lastDelta?: number | null;
 }
 
-export function BlackjackArea({ onLeave, balance }: BlackjackAreaProps) {
+export function BlackjackArea({ onLeave, balance, lastDelta }: BlackjackAreaProps) {
   const {
     gameState,
     mySocketId,
@@ -64,6 +66,7 @@ export function BlackjackArea({ onLeave, balance }: BlackjackAreaProps) {
       <h2 className="bj-title">♠ Blackjack ♥</h2>
 
       <div className="bj-status">{getStatusText()}</div>
+      {phase === 'over' && <GameSummary delta={lastDelta ?? null} />}
 
       {/* Zone Dealer */}
       {gameState && gameState.phase !== 'waiting' && (
