@@ -9,17 +9,28 @@ export function useBlackjack() {
   useEffect(() => {
     socket.on('connect', () => setMySocketId(socket.id ?? ''));
 
-    // Rejoindre une room → état waiting avec gameId
+    // Rejoindre une room → état waiting avec liste joueurs + états prêts
     socket.on(
       'game:waiting',
-      (data: { gameId: string; playerCount: number; message: string }) => {
-        setGameState((prev) => ({
+      (data: {
+        gameId: string;
+        playerCount: number;
+        players: Array<{ socketId: string; ready: boolean }>;
+        message: string;
+      }) => {
+        setGameState({
           gameId: data.gameId,
           phase: 'waiting',
-          players: prev?.players ?? [],
+          players: data.players.map((p) => ({
+            socketId: p.socketId,
+            hands: [],
+            currentHandIndex: 0,
+            result: null,
+            ready: p.ready,
+          })),
           dealerCards: [],
           currentPlayerIndex: 0,
-        }));
+        });
       },
     );
 
@@ -78,6 +89,11 @@ export function useBlackjack() {
     socket.emit('game:start-round', { gameId: gameState.gameId, bet });
   }
 
+  function setReady(bet: number = 10) {
+    if (!gameState?.gameId) return;
+    socket.emit('game:ready', { gameId: gameState.gameId, bet });
+  }
+
   function hit() {
     if (!gameState?.gameId) return;
     socket.emit('game:action', { gameId: gameState.gameId, action: 'hit' });
@@ -113,6 +129,7 @@ export function useBlackjack() {
     mySocketId,
     joinGame,
     startRound,
+    setReady,
     hit,
     stand,
     double,

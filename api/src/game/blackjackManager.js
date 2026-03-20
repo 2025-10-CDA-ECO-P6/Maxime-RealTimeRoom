@@ -45,10 +45,24 @@ function createBlackjackManager(walletManager = null) {
       hands: [_createHand()],
       currentHandIndex: 0,
       result: null,
+      ready: false,
+      pendingBet: 10,
     };
   }
 
   // ── Sérialisation ─────────────────────────────────────────────────────────────
+
+  /**
+   * Payload envoyé à tous en phase waiting : liste avec état "prêt" de chaque joueur.
+   */
+  function _serializeWaiting(room) {
+    return {
+      gameId: room.gameId,
+      playerCount: room.players.length,
+      players: room.players.map((p) => ({ socketId: p.socketId, ready: p.ready })),
+      message: `En attente... (${room.players.length}/${MAX_PLAYERS} joueurs)`,
+    };
+  }
 
   /**
    * Prépare la room pour envoi socket (ne pas envoyer le deck — sécurité).
@@ -204,57 +218,32 @@ function createBlackjackManager(walletManager = null) {
     socketRoomMap.set(socket.id, room.gameId);
     socket.join(room.gameId);
 
-    socket.emit('game:waiting', {
-      gameId: room.gameId,
-      playerCount: room.players.length,
-      message: `En attente... (${room.players.length}/${MAX_PLAYERS} joueurs)`,
-    });
+    // Broadcaster à TOUS les joueurs du lobby (y compris le nouveau)
+    io.to(room.gameId).emit('game:waiting', _serializeWaiting(room));
   }
 
   /**
-   * Démarre un round : distribue les cartes à tous les joueurs et au dealer.
-   *
-   * Distribution :
-   *   - Chaque joueur reçoit 2 cartes (+ vérif Blackjack naturel)
-   *   - Dealer reçoit 2 cartes (la 2ème est cachée — hidden: true)
-   *
-   * Si un joueur a Blackjack naturel, il passe directement en status 'blackjack'.
-   * Si TOUS les joueurs ont Blackjack, on passe directement au tour du dealer.
+   * Cœur de la distribution : appelé par startRound (tests/direct) et handleReady (auto).
+   * Suppose que player.pendingBet est déjà assigné sur chaque joueur.
    */
-  /**
-   * @param {object} opts
-   * @param {string}   opts.gameId
-   * @param {object[]} [opts._testDeck] - deck pré-construit (tests uniquement)
-   */
-  function startRound(io, socket, { gameId, bet = 10, _testDeck } = {}) {
-    const room = rooms.get(gameId);
-    if (!room || room.phase !== 'waiting') return;
-    if (!room.players.find((p) => p.socketId === socket.id)) return;
-
-    // Valider et débiter la mise pour tous les joueurs
-    const betAmount = Math.max(5, Math.floor(bet));
+  function _startRoundInternal(io, room, _testDeck = null) {
+    // Débiter la mise de chaque joueur
     if (walletManager) {
       for (const player of room.players) {
-        if (!walletManager.canBet(player.socketId, betAmount)) {
-          socket.emit('wallet:bet-refused', { reason: 'Solde insuffisant' });
-          return;
-        }
-      }
-      for (const player of room.players) {
-        walletManager.debit(player.socketId, betAmount);
+        walletManager.debit(player.socketId, player.pendingBet);
       }
     }
 
-    // Deck frais mélangé (ou deck de test injecté)
     room.deck = _testDeck ?? shuffle(createDeck());
     room.phase = 'playing';
     room.currentPlayerIndex = 0;
 
     // Distribuer 2 cartes à chaque joueur
     for (const player of room.players) {
-      player.hands = [_createHand([], betAmount)];
+      player.hands = [_createHand([], player.pendingBet)];
       player.currentHandIndex = 0;
       player.result = null;
+      player.ready = false; // reset pour le prochain round
 
       for (let i = 0; i < 2; i++) {
         const { card, deck } = dealCard(room.deck);
@@ -262,7 +251,6 @@ function createBlackjackManager(walletManager = null) {
         player.hands[0].cards = [...player.hands[0].cards, card];
       }
 
-      // Blackjack naturel dès la donne
       if (isBlackjack(player.hands[0].cards)) {
         player.hands[0].status = 'blackjack';
       }
@@ -274,14 +262,14 @@ function createBlackjackManager(walletManager = null) {
     room.deck = deckD2;
     room.dealerCards = [d1, { ...d2, hidden: true }];
 
-    // Si tous les joueurs ont Blackjack → passer directement au dealer
+    // Tous Blackjack → directement au dealer
     if (room.players.every((p) => p.hands[0].status === 'blackjack')) {
-      io.to(gameId).emit('game:start', _serialize(room));
+      io.to(room.gameId).emit('game:start', _serialize(room));
       _dealerTurn(io, room);
       return;
     }
 
-    // Avancer vers le 1er joueur qui n'a pas de Blackjack naturel
+    // Avancer vers le 1er joueur sans Blackjack naturel
     while (
       room.currentPlayerIndex < room.players.length &&
       room.players[room.currentPlayerIndex].hands[0].status === 'blackjack'
@@ -289,7 +277,73 @@ function createBlackjackManager(walletManager = null) {
       room.currentPlayerIndex++;
     }
 
-    io.to(gameId).emit('game:start', _serialize(room));
+    io.to(room.gameId).emit('game:start', _serialize(room));
+  }
+
+  /**
+   * Démarre un round directement (rétro-compatibilité tests + event game:start-round).
+   * Assigne bet à tous les joueurs puis appelle _startRoundInternal.
+   *
+   * @param {object} opts
+   * @param {string}   opts.gameId
+   * @param {number}   [opts.bet=10]
+   * @param {object[]} [opts._testDeck] - deck pré-construit (tests uniquement)
+   */
+  function startRound(io, socket, { gameId, bet = 10, _testDeck } = {}) {
+    const room = rooms.get(gameId);
+    if (!room || room.phase !== 'waiting') return;
+    if (!room.players.find((p) => p.socketId === socket.id)) return;
+
+    const betAmount = Math.max(5, Math.floor(bet));
+
+    if (walletManager) {
+      for (const player of room.players) {
+        if (!walletManager.canBet(player.socketId, betAmount)) {
+          socket.emit('wallet:bet-refused', { reason: 'Solde insuffisant' });
+          return;
+        }
+      }
+    }
+
+    for (const player of room.players) {
+      player.pendingBet = betAmount;
+    }
+
+    _startRoundInternal(io, room, _testDeck);
+  }
+
+  /**
+   * Un joueur indique qu'il est prêt avec sa mise.
+   * Quand TOUS les joueurs sont prêts → la partie démarre automatiquement.
+   *
+   * @param {object} opts
+   * @param {string} opts.gameId
+   * @param {number} [opts.bet=10]
+   */
+  function handleReady(io, socket, { gameId, bet = 10 } = {}) {
+    const room = rooms.get(gameId);
+    if (!room || room.phase !== 'waiting') return;
+
+    const player = room.players.find((p) => p.socketId === socket.id);
+    if (!player || player.ready) return;
+
+    const betAmount = Math.max(5, Math.floor(bet));
+
+    if (walletManager && !walletManager.canBet(socket.id, betAmount)) {
+      socket.emit('wallet:bet-refused', { reason: 'Solde insuffisant' });
+      return;
+    }
+
+    player.ready = true;
+    player.pendingBet = betAmount;
+
+    // Informer tout le lobby du nouvel état
+    io.to(gameId).emit('game:waiting', _serializeWaiting(room));
+
+    // Auto-démarrer si tous les joueurs sont prêts
+    if (room.players.length > 0 && room.players.every((p) => p.ready)) {
+      _startRoundInternal(io, room);
+    }
   }
 
   /**
@@ -392,12 +446,8 @@ function createBlackjackManager(walletManager = null) {
         reason: 'opponent-left',
       });
     } else {
-      // En attente → mettre à jour le compteur
-      io.to(gameId).emit('game:waiting', {
-        gameId: room.gameId,
-        playerCount: room.players.length,
-        message: `En attente... (${room.players.length}/${MAX_PLAYERS} joueurs)`,
-      });
+      // En attente → mettre à jour tout le lobby
+      io.to(gameId).emit('game:waiting', _serializeWaiting(room));
     }
   }
 
@@ -412,6 +462,7 @@ function createBlackjackManager(walletManager = null) {
   return {
     joinGame,
     startRound,
+    handleReady,
     handleAction,
     handleLeaveGame,
     handleDisconnect,

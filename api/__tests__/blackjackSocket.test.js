@@ -32,6 +32,12 @@ function createMockIo() {
   };
 }
 
+/** Récupère le gameId depuis le 1er emit game:waiting (maintenant via io._roomEmit) */
+function getGameId(io) {
+  const call = io._roomEmit.mock.calls.find(([ev]) => ev === 'game:waiting');
+  return call[1].gameId;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Matchmaking — rejoindre une room
 // ─────────────────────────────────────────────────────────────────────────────
@@ -48,16 +54,20 @@ describe('game:join (blackjack)', () => {
   test('1er joueur reçoit game:waiting et une room est créée', () => {
     manager.joinGame(io, socket1);
 
-    expect(socket1.emit).toHaveBeenCalledWith('game:waiting', expect.any(Object));
+    // game:waiting est maintenant broadcasté via io.to(gameId).emit
+    expect(io._roomEmit).toHaveBeenCalledWith('game:waiting', expect.any(Object));
     expect(manager.getRoom(expect.anything())).toBeDefined;
   });
 
-  test('2ème joueur rejoint la même room (toujours en waiting)', () => {
+  test('2ème joueur rejoint : tous reçoivent game:waiting avec 2 joueurs', () => {
     manager.joinGame(io, socket1);
     manager.joinGame(io, socket2);
 
-    // Les deux sont dans la même room, pas encore started
-    expect(socket2.emit).toHaveBeenCalledWith('game:waiting', expect.any(Object));
+    // Le 2ème emit game:waiting doit indiquer playerCount: 2
+    const waitingCalls = io._roomEmit.mock.calls.filter(([ev]) => ev === 'game:waiting');
+    const last = waitingCalls[waitingCalls.length - 1][1];
+    expect(last.playerCount).toBe(2);
+    expect(last.players).toHaveLength(2);
   });
 });
 
@@ -73,8 +83,7 @@ describe('game:start-round', () => {
     manager.joinGame(io, socket1);
 
     // Récupérer le gameId depuis l'emit game:waiting
-    const waitingCall = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting');
-    const gameId = waitingCall[1].gameId;
+    const gameId = getGameId(io);
 
     io._roomEmit.mockClear();
     io.to.mockClear();
@@ -106,7 +115,7 @@ describe('game:start-round', () => {
     const socket1 = createMockSocket('bj-p1');
 
     manager.joinGame(io, socket1);
-    const gameId = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting')[1].gameId;
+    const gameId = getGameId(io);
 
     manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
 
@@ -126,7 +135,7 @@ describe('game:action — hit', () => {
     const socket1 = createMockSocket('bj-p1');
 
     manager.joinGame(io, socket1);
-    const gameId = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting')[1].gameId;
+    const gameId = getGameId(io);
     manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
 
     io._roomEmit.mockClear();
@@ -149,7 +158,7 @@ describe('game:action — stand', () => {
     const socket1 = createMockSocket('bj-p1');
 
     manager.joinGame(io, socket1);
-    const gameId = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting')[1].gameId;
+    const gameId = getGameId(io);
     manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
 
     io._roomEmit.mockClear();
@@ -168,7 +177,7 @@ describe('game:action — stand', () => {
     const socket1 = createMockSocket('bj-p1');
 
     manager.joinGame(io, socket1);
-    const gameId = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting')[1].gameId;
+    const gameId = getGameId(io);
     manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
     manager.handleAction(io, socket1, { gameId, action: 'stand' });
 
@@ -191,7 +200,7 @@ describe('game:action — hors tour', () => {
     const intruder = createMockSocket('intruder');
 
     manager.joinGame(io, socket1);
-    const gameId = socket1.emit.mock.calls.find(([ev]) => ev === 'game:waiting')[1].gameId;
+    const gameId = getGameId(io);
     manager.startRound(io, socket1, { gameId, _testDeck: safeDeck() });
 
     io._roomEmit.mockClear();

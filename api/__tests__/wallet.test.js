@@ -1,4 +1,5 @@
-const { createWalletManager } = require('../src/game/walletManager');
+import { describe, test, expect, beforeEach } from 'vitest';
+import { createWalletManager } from '../src/game/walletManager.js';
 
 describe('walletManager', () => {
   let wallet;

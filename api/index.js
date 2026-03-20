@@ -50,8 +50,11 @@ io.on('connection', (socket) => {
     else ticTacToeManager.joinGame(io, socket);
   });
 
-  // Démarrage d'un round Blackjack
+  // Démarrage d'un round Blackjack (direct — rétro-compat)
   socket.on('game:start-round', (data) => blackjackManager.startRound(io, socket, data));
+
+  // Joueur prêt avec sa mise → auto-démarre quand tous prêts
+  socket.on('game:ready', (data) => blackjackManager.handleReady(io, socket, data));
 
   // Actions Blackjack : hit / stand / double / split
   socket.on('game:action', (data) => blackjackManager.handleAction(io, socket, data));

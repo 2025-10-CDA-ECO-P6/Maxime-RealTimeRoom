@@ -22,6 +22,7 @@ export interface BJPlayer {
   hands: BJHand[];
   currentHandIndex: number;
   result: BJResult[] | null;
+  ready?: boolean; // phase waiting uniquement
 }
 
 /** Phase interne de la room (serveur) */

@@ -18,6 +18,7 @@ export function BlackjackArea({ onLeave, balance }: BlackjackAreaProps) {
     mySocketId,
     joinGame,
     startRound,
+    setReady,
     hit,
     stand,
     double,
@@ -45,7 +46,7 @@ export function BlackjackArea({ onLeave, balance }: BlackjackAreaProps) {
   function getStatusText() {
     switch (phase) {
       case 'idle':         return 'Rejoins une table pour jouer !';
-      case 'waiting':      return `En attente... (${gameState?.players.length ?? 1}/4) — Lance le round quand tu es prêt`;
+      case 'waiting':      return `En attente... (${gameState?.players.length ?? 1}/4) — Sélectionne ta mise et clique Prêt !`;
       case 'my-turn':      return '🎴 C\'est ton tour !';
       case 'waiting-turn': return '⏳ En attente du tour des autres joueurs...';
       case 'dealer-turn':  return '🃏 Le dealer joue...';
@@ -112,9 +113,14 @@ export function BlackjackArea({ onLeave, balance }: BlackjackAreaProps) {
         </div>
       )}
 
-      {/* Mise — affiché en phase waiting à la place des contrôles */}
+      {/* Lobby waiting : sélection mise + bouton Prêt pour chaque joueur */}
       {phase === 'waiting' && (
-        <BlackjackBet balance={balance ?? null} onConfirm={(bet) => startRound(bet)} />
+        <BlackjackBet
+          balance={balance ?? null}
+          players={gameState?.players ?? []}
+          mySocketId={mySocketId}
+          onReady={setReady}
+        />
       )}
 
       {/* Contrôles — toutes les autres phases */}
