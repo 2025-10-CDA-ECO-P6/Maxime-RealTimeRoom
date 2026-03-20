@@ -37,5 +37,9 @@ export function useWallet() {
     };
   }, []);
 
-  return { balance, lastDelta };
+  function resetDelta() {
+    setLastDelta(null);
+  }
+
+  return { balance, lastDelta, resetDelta };
 }

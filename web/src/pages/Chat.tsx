@@ -24,7 +24,12 @@ function Chat({ username }: { username: string }) {
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeGame, setActiveGame] = useState<ActiveGame>(null);
-  const { balance, lastDelta } = useWallet();
+  const { balance, lastDelta, resetDelta } = useWallet();
+
+  // Réinitialise le delta à chaque changement de jeu (lobby/ttt/blackjack)
+  useEffect(() => {
+    resetDelta();
+  }, [activeGame]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     socket.auth = { username };
