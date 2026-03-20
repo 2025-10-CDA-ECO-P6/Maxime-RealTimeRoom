@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { socket } from '../socket';
 
 export function useWallet() {
@@ -18,19 +18,24 @@ export function useWallet() {
       isGameResult?: boolean;
     }) {
       setBalance(balance);
-      // On met à jour lastDelta seulement après un résultat de jeu réel
-      // (pas à l'initialisation du wallet)
+      // On met à jour lastDelta uniquement après un vrai résultat de jeu
       if (isGameResult && delta !== undefined) {
         setLastDelta(delta);
       }
     }
 
+    // Réinitialise le delta au début de chaque partie
+    function onGameStart() {
+      setLastDelta(null);
+    }
+
     socket.on('wallet:update', onUpdate);
-    return () => { socket.off('wallet:update', onUpdate); };
+    socket.on('game:start', onGameStart);
+    return () => {
+      socket.off('wallet:update', onUpdate);
+      socket.off('game:start', onGameStart);
+    };
   }, []);
 
-  // Réinitialise le delta affiché (ex: quand on change de jeu)
-  const resetDelta = useCallback(() => setLastDelta(null), []);
-
-  return { balance, lastDelta, resetDelta };
+  return { balance, lastDelta };
 }

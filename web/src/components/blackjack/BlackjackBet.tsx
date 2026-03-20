@@ -10,11 +10,12 @@ interface Props {
   players: WaitingPlayer[];
   mySocketId: string;
   onReady: (bet: number) => void;
+  onLeave: () => void;
 }
 
 const BET_OPTIONS = [5, 10, 25, 50];
 
-export function BlackjackBet({ balance, players, mySocketId, onReady }: Props) {
+export function BlackjackBet({ balance, players, mySocketId, onReady, onLeave }: Props) {
   const [selected, setSelected] = useState<number>(10);
 
   const maxBet = balance ?? 0;
@@ -69,6 +70,10 @@ export function BlackjackBet({ balance, players, mySocketId, onReady }: Props) {
           </button>
         </>
       )}
+
+      <button className="game-btn game-btn--leave bj-bet__leave" onClick={onLeave}>
+        ← Lobby
+      </button>
     </div>
   );
 }

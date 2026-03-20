@@ -155,14 +155,23 @@ function createBlackjackManager(walletManager = null) {
     // Appliquer les gains wallet (la mise a déjà été débitée au startRound)
     if (walletManager) {
       for (const player of room.players) {
-        const balanceBefore = walletManager.getBalance(player.socketId) ?? 0;
         player.result.forEach((result, i) => {
           walletManager.applyBlackjackResult(player.socketId, result, player.hands[i].bet);
         });
         const balance = walletManager.getBalance(player.socketId);
         if (balance !== null) {
-          const delta = balance - balanceBefore;
-          io.to(player.socketId).emit('wallet:update', { balance, delta, isGameResult: true });
+          // Delta net = gain/perte réelle du point de vue du joueur
+          const netDelta = player.result.reduce((acc, result, i) => {
+            const bet = player.hands[i].bet;
+            switch (result) {
+              case 'win':       return acc + bet;
+              case 'blackjack': return acc + Math.floor(bet * 1.5);
+              case 'push':      return acc;       // mise récupérée, gain net = 0
+              case 'lose':      return acc - bet; // mise perdue
+              default:          return acc;
+            }
+          }, 0);
+          io.to(player.socketId).emit('wallet:update', { balance, delta: netDelta, isGameResult: true });
         }
       }
     }

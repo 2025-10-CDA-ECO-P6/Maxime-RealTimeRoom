@@ -19,7 +19,7 @@ export function GameControls({ phase, onJoin, onReset, onLeave }: GameControlsPr
   if (phase === 'waiting') {
     return (
       <button className="game-btn game-btn--leave" onClick={onLeave}>
-        Cancel
+        ← Lobby
       </button>
     );
   }

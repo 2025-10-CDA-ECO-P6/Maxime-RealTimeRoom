@@ -91,12 +91,10 @@ function createGameManager(walletManager = null) {
           io.to(game.players.X).emit('wallet:update', { balance: walletManager.getBalance(game.players.X), delta: 3, isGameResult: true });
           io.to(game.players.O).emit('wallet:update', { balance: walletManager.getBalance(game.players.O), delta: 3, isGameResult: true });
         } else if (winner) {
-          // Victoire : +10 pour le gagnant, delta: 0 pour le perdant
+          // Victoire : +10 pour le gagnant uniquement (perdant : rien à afficher)
           const winnerSocketId = game.players[winner];
-          const loserSocketId = game.players[winner === 'X' ? 'O' : 'X'];
           walletManager.credit(winnerSocketId, 10);
           io.to(winnerSocketId).emit('wallet:update', { balance: walletManager.getBalance(winnerSocketId), delta: 10, isGameResult: true });
-          io.to(loserSocketId).emit('wallet:update', { balance: walletManager.getBalance(loserSocketId), delta: 0, isGameResult: true });
         }
       }
     }

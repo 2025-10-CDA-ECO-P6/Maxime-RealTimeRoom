@@ -290,3 +290,13 @@
   color: #ccc;
   margin: 0;
 }
+
+.bj-bet__leave {
+  margin-top: 4px;
+  opacity: 0.75;
+  font-size: 12px;
+}
+
+.bj-bet__leave:hover {
+  opacity: 1;
+}

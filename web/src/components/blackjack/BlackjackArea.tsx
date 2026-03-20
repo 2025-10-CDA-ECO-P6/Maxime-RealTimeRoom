@@ -123,6 +123,7 @@ export function BlackjackArea({ onLeave, balance, lastDelta }: BlackjackAreaProp
           players={gameState?.players ?? []}
           mySocketId={mySocketId}
           onReady={setReady}
+          onLeave={handleLeave}
         />
       )}
 
